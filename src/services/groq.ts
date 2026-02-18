@@ -137,7 +137,8 @@ function writeString(view: DataView, offset: number, str: string) {
  */
 export async function transcribeWithGroq(
     audioBlob: Blob,
-    onProgress?: (message: string) => void
+    onProgress?: (message: string) => void,
+    language?: string
 ): Promise<LyricSegment[]> {
     if (!GROQ_API_KEY) {
         throw new Error('Groq API key not configured');
@@ -187,6 +188,14 @@ export async function transcribeWithGroq(
     formData.append('model', 'whisper-large-v3-turbo');
     formData.append('response_format', 'verbose_json');
     formData.append('timestamp_granularities[]', 'segment');
+
+    // Pass language hint for better accuracy (empty = auto-detect)
+    if (language) {
+        formData.append('language', language);
+        console.info(`[Groq] Language hint: ${language}`);
+    } else {
+        console.info('[Groq] Language: auto-detect');
+    }
 
     const response = await fetch(GROQ_API_URL, {
         method: 'POST',

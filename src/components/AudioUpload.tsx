@@ -3,8 +3,35 @@ import { useAppStore } from '../store/useAppStore';
 import { useDemucs } from '../hooks/useDemucs';
 import { useWhisper } from '../hooks/useWhisper';
 
+const LANGUAGES = [
+    { code: '', label: '🌐 Auto-Detect' },
+    { code: 'hi', label: '🇮🇳 Hindi' },
+    { code: 'en', label: '🇬🇧 English' },
+    { code: 'es', label: '🇪🇸 Spanish' },
+    { code: 'fr', label: '🇫🇷 French' },
+    { code: 'de', label: '🇩🇪 German' },
+    { code: 'ja', label: '🇯🇵 Japanese' },
+    { code: 'ko', label: '🇰🇷 Korean' },
+    { code: 'pt', label: '🇧🇷 Portuguese' },
+    { code: 'ar', label: '🇸🇦 Arabic' },
+    { code: 'zh', label: '🇨🇳 Chinese' },
+    { code: 'ru', label: '🇷🇺 Russian' },
+    { code: 'ta', label: '🇮🇳 Tamil' },
+    { code: 'te', label: '🇮🇳 Telugu' },
+    { code: 'bn', label: '🇮🇳 Bengali' },
+    { code: 'mr', label: '🇮🇳 Marathi' },
+    { code: 'gu', label: '🇮🇳 Gujarati' },
+    { code: 'pa', label: '🇮🇳 Punjabi' },
+    { code: 'ur', label: '🇵🇰 Urdu' },
+    { code: 'it', label: '🇮🇹 Italian' },
+    { code: 'tr', label: '🇹🇷 Turkish' },
+    { code: 'th', label: '🇹🇭 Thai' },
+];
+
 export function AudioUpload() {
     const { setAudioFile, setStage } = useAppStore();
+    const selectedLanguage = useAppStore((s) => s.selectedLanguage);
+    const setSelectedLanguage = useAppStore((s) => s.setSelectedLanguage);
     const { separate } = useDemucs();
     const { runTranscription } = useWhisper();
 
@@ -18,7 +45,6 @@ export function AudioUpload() {
             const result = await separate(audioBlob);
 
             // Step 2: Transcription (uses vocals from separation)
-            // Get a rough duration estimate from the file
             const tempAudio = new Audio(URL.createObjectURL(audioBlob));
             await new Promise<void>((resolve) => {
                 tempAudio.addEventListener('loadedmetadata', () => resolve());
@@ -27,11 +53,12 @@ export function AudioUpload() {
             const duration = tempAudio.duration;
             URL.revokeObjectURL(tempAudio.src);
 
-            await runTranscription(result.vocals, duration);
+            // Pass the selected language to transcription
+            await runTranscription(result.vocals, duration, selectedLanguage);
         } catch (err) {
             console.error('Pipeline error:', err);
         }
-    }, [setAudioFile, setStage, separate, runTranscription]);
+    }, [setAudioFile, setStage, separate, runTranscription, selectedLanguage]);
 
     const handleDrop = useCallback((e: React.DragEvent) => {
         e.preventDefault();
@@ -46,7 +73,34 @@ export function AudioUpload() {
     }, []);
 
     return (
-        <div className="w-full max-w-lg mx-auto px-4">
+        <div className="w-full max-w-lg mx-auto px-4 space-y-4">
+            {/* Language Selector */}
+            <div className="flex items-center justify-center gap-3">
+                <label htmlFor="lang-select" className="text-sm text-gray-400 font-medium whitespace-nowrap">
+                    Song Language
+                </label>
+                <select
+                    id="lang-select"
+                    value={selectedLanguage}
+                    onChange={(e) => setSelectedLanguage(e.target.value)}
+                    className="bg-surface-700/80 text-gray-200 border border-white/10 rounded-xl px-4 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-neon-cyan/40 focus:border-neon-cyan/40 cursor-pointer appearance-none hover:border-white/20 transition-colors min-w-[180px]"
+                    style={{
+                        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%239ca3af'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E")`,
+                        backgroundRepeat: 'no-repeat',
+                        backgroundPosition: 'right 12px center',
+                        backgroundSize: '16px',
+                        paddingRight: '36px',
+                    }}
+                >
+                    {LANGUAGES.map((lang) => (
+                        <option key={lang.code} value={lang.code}>
+                            {lang.label}
+                        </option>
+                    ))}
+                </select>
+            </div>
+
+            {/* Upload Area */}
             <div
                 onDrop={handleDrop}
                 onDragOver={handleDragOver}

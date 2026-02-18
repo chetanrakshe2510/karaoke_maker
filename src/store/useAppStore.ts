@@ -29,6 +29,7 @@ interface AppState {
 
     // Lyrics
     segments: LyricSegment[];
+    selectedLanguage: string; // ISO 639-1 code, '' = auto-detect
 
     // Playback
     isPlaying: boolean;
@@ -45,6 +46,7 @@ interface AppState {
     setInstrumentalBlob: (blob: Blob | null) => void;
     setInstrumentalUrl: (url: string | null) => void;
     setSegments: (segments: LyricSegment[]) => void;
+    setSelectedLanguage: (lang: string) => void;
     setIsPlaying: (playing: boolean) => void;
     setCurrentTime: (time: number) => void;
     setDuration: (duration: number) => void;
@@ -61,6 +63,7 @@ const initialState = {
     instrumentalBlob: null,
     instrumentalUrl: null,
     segments: [],
+    selectedLanguage: '',
     isPlaying: false,
     currentTime: 0,
     duration: 0,
@@ -78,6 +81,7 @@ export const useAppStore = create<AppState>((set) => ({
     setInstrumentalBlob: (instrumentalBlob) => set({ instrumentalBlob }),
     setInstrumentalUrl: (instrumentalUrl) => set({ instrumentalUrl }),
     setSegments: (segments) => set({ segments }),
+    setSelectedLanguage: (selectedLanguage) => set({ selectedLanguage }),
     setIsPlaying: (isPlaying) => set({ isPlaying }),
     setCurrentTime: (currentTime) => set({ currentTime }),
     setDuration: (duration) => set({ duration }),
