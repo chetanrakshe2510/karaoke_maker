@@ -31,7 +31,7 @@ export function useWhisper() {
         return supported;
     }, []);
 
-    const runTranscription = useCallback(async (vocalsBlob: Blob, duration?: number, language?: string) => {
+    const runTranscription = useCallback(async (vocalsBlob: Blob, duration?: number, language?: string, quality?: 'fast' | 'accurate') => {
         setIsTranscribing(true);
         setError(null);
 
@@ -51,7 +51,7 @@ export function useWhisper() {
                 try {
                     const segments = await transcribeWithGroq(vocalsBlob, (message) => {
                         console.info('Groq:', message);
-                    }, language);
+                    }, language, quality);
 
                     console.info(`✅ Groq returned ${segments.length} segments`);
                     setSegments(segments);

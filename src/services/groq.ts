@@ -145,7 +145,8 @@ function writeString(view: DataView, offset: number, str: string) {
 export async function transcribeWithGroq(
     audioBlob: Blob,
     onProgress?: (message: string) => void,
-    language?: string
+    language?: string,
+    quality?: 'fast' | 'accurate'
 ): Promise<LyricSegment[]> {
     if (!GROQ_API_KEY) {
         throw new Error('Groq API key not configured');
@@ -191,8 +192,12 @@ export async function transcribeWithGroq(
         type: fileToSend.type || 'audio/wav',
     });
 
+    // Select model based on quality preference
+    const model = quality === 'fast' ? 'whisper-large-v3-turbo' : 'whisper-large-v3';
+    console.info(`[Groq] Using model: ${model} (${quality || 'accurate'} mode)`);
+
     formData.append('file', audioFile);
-    formData.append('model', 'whisper-large-v3-turbo');
+    formData.append('model', model);
     formData.append('response_format', 'verbose_json');
     formData.append('timestamp_granularities[]', 'segment');
     formData.append('timestamp_granularities[]', 'word');

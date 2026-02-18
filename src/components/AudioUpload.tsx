@@ -32,6 +32,8 @@ export function AudioUpload() {
     const { setAudioFile, setStage } = useAppStore();
     const selectedLanguage = useAppStore((s) => s.selectedLanguage);
     const setSelectedLanguage = useAppStore((s) => s.setSelectedLanguage);
+    const transcriptionQuality = useAppStore((s) => s.transcriptionQuality);
+    const setTranscriptionQuality = useAppStore((s) => s.setTranscriptionQuality);
     const { separate } = useDemucs();
     const { runTranscription } = useWhisper();
 
@@ -53,12 +55,12 @@ export function AudioUpload() {
             const duration = tempAudio.duration;
             URL.revokeObjectURL(tempAudio.src);
 
-            // Pass the selected language to transcription
-            await runTranscription(result.vocals, duration, selectedLanguage);
+            // Pass the selected language and quality to transcription
+            await runTranscription(result.vocals, duration, selectedLanguage, transcriptionQuality);
         } catch (err) {
             console.error('Pipeline error:', err);
         }
-    }, [setAudioFile, setStage, separate, runTranscription, selectedLanguage]);
+    }, [setAudioFile, setStage, separate, runTranscription, selectedLanguage, transcriptionQuality]);
 
     const handleDrop = useCallback((e: React.DragEvent) => {
         e.preventDefault();
@@ -98,6 +100,34 @@ export function AudioUpload() {
                         </option>
                     ))}
                 </select>
+            </div>
+
+            {/* Quality Toggle */}
+            <div className="flex items-center justify-center gap-3">
+                <span className="text-sm text-gray-400 font-medium">Quality</span>
+                <div className="inline-flex rounded-xl bg-surface-700/80 border border-white/10 p-1">
+                    <button
+                        onClick={() => setTranscriptionQuality('fast')}
+                        className={`px-4 py-1.5 text-sm font-semibold rounded-lg transition-all duration-200 ${transcriptionQuality === 'fast'
+                                ? 'bg-neon-cyan/20 text-neon-cyan shadow-sm'
+                                : 'text-gray-400 hover:text-gray-200'
+                            }`}
+                    >
+                        ⚡ Fast
+                    </button>
+                    <button
+                        onClick={() => setTranscriptionQuality('accurate')}
+                        className={`px-4 py-1.5 text-sm font-semibold rounded-lg transition-all duration-200 ${transcriptionQuality === 'accurate'
+                                ? 'bg-neon-cyan/20 text-neon-cyan shadow-sm'
+                                : 'text-gray-400 hover:text-gray-200'
+                            }`}
+                    >
+                        🎯 Accurate
+                    </button>
+                </div>
+                <span className="text-xs text-gray-500">
+                    {transcriptionQuality === 'fast' ? '~2-3s' : '~5-8s'}
+                </span>
             </div>
 
             {/* Upload Area */}

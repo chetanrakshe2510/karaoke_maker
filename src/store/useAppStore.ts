@@ -37,6 +37,7 @@ interface AppState {
     // Lyrics
     segments: LyricSegment[];
     selectedLanguage: string; // ISO 639-1 code, '' = auto-detect
+    transcriptionQuality: 'fast' | 'accurate';
 
     // Playback
     isPlaying: boolean;
@@ -54,6 +55,7 @@ interface AppState {
     setInstrumentalUrl: (url: string | null) => void;
     setSegments: (segments: LyricSegment[]) => void;
     setSelectedLanguage: (lang: string) => void;
+    setTranscriptionQuality: (quality: 'fast' | 'accurate') => void;
     setIsPlaying: (playing: boolean) => void;
     setCurrentTime: (time: number) => void;
     setDuration: (duration: number) => void;
@@ -71,6 +73,7 @@ const initialState = {
     instrumentalUrl: null,
     segments: [],
     selectedLanguage: '',
+    transcriptionQuality: 'accurate' as const,
     isPlaying: false,
     currentTime: 0,
     duration: 0,
@@ -89,6 +92,7 @@ export const useAppStore = create<AppState>((set) => ({
     setInstrumentalUrl: (instrumentalUrl) => set({ instrumentalUrl }),
     setSegments: (segments) => set({ segments }),
     setSelectedLanguage: (selectedLanguage) => set({ selectedLanguage }),
+    setTranscriptionQuality: (transcriptionQuality) => set({ transcriptionQuality }),
     setIsPlaying: (isPlaying) => set({ isPlaying }),
     setCurrentTime: (currentTime) => set({ currentTime }),
     setDuration: (duration) => set({ duration }),
