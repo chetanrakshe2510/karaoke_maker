@@ -73,6 +73,7 @@ export function LyricContainer() {
                                 currentTime={currentTime}
                                 isActive={isActive}
                                 isPast={isPast}
+                                words={seg.words}
                             />
                         </div>
                     );

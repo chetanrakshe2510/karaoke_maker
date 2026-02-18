@@ -15,6 +15,12 @@ const GROQ_API_URL = '/api/groq/openai/v1/audio/transcriptions';
 // Groq free tier limit is 25MB
 const MAX_FILE_SIZE = 25 * 1024 * 1024;
 
+interface GroqWord {
+    word: string;
+    start: number;
+    end: number;
+}
+
 interface GroqSegment {
     id: number;
     text: string;
@@ -25,6 +31,7 @@ interface GroqSegment {
 interface GroqResponse {
     text: string;
     segments?: GroqSegment[];
+    words?: GroqWord[];
 }
 
 /**
@@ -188,6 +195,7 @@ export async function transcribeWithGroq(
     formData.append('model', 'whisper-large-v3-turbo');
     formData.append('response_format', 'verbose_json');
     formData.append('timestamp_granularities[]', 'segment');
+    formData.append('timestamp_granularities[]', 'word');
 
     // Pass language hint for better accuracy (empty = auto-detect)
     if (language) {
@@ -220,15 +228,31 @@ export async function transcribeWithGroq(
     onProgress?.('Processing transcription...');
 
     // Convert Groq segments to our LyricSegment format
+    // Attach word-level timestamps to each segment for word-by-word highlighting
     if (data.segments && data.segments.length > 0) {
+        const allWords = data.words || [];
+        console.info(`[Groq] Got ${allWords.length} word timestamps`);
+
         const segments = data.segments
             .filter((seg) => seg.text.trim().length > 0)
-            .map((seg) => ({
-                text: seg.text.trim(),
-                start: seg.start,
-                end: seg.end,
-            }));
-        console.info(`[Groq] ✅ Got ${segments.length} lyric segments`);
+            .map((seg) => {
+                // Find words that fall within this segment's time range
+                const segWords = allWords
+                    .filter((w) => w.start >= seg.start - 0.05 && w.end <= seg.end + 0.05)
+                    .map((w) => ({
+                        word: w.word.trim(),
+                        start: w.start,
+                        end: w.end,
+                    }));
+
+                return {
+                    text: seg.text.trim(),
+                    start: seg.start,
+                    end: seg.end,
+                    words: segWords.length > 0 ? segWords : undefined,
+                };
+            });
+        console.info(`[Groq] ✅ Got ${segments.length} lyric segments with word timestamps`);
         return segments;
     }
 

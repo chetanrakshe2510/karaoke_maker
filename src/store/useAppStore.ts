@@ -8,10 +8,17 @@ export type PipelineStage =
     | 'transcribing'
     | 'ready';
 
+export interface WordTimestamp {
+    word: string;
+    start: number;
+    end: number;
+}
+
 export interface LyricSegment {
     text: string;
     start: number; // seconds
     end: number;   // seconds
+    words?: WordTimestamp[];
 }
 
 interface AppState {
