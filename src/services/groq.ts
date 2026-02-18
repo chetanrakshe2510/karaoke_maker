@@ -139,6 +139,41 @@ function writeString(view: DataView, offset: number, str: string) {
 }
 
 /**
+ * Generate a context prompt based on the selected language.
+ * Whisper uses this to improve transcription accuracy for proper nouns,
+ * mixed-language content, and stylistic phrasing.
+ */
+function getLanguagePrompt(language?: string): string {
+    if (!language) return '';
+
+    const prompts: Record<string, string> = {
+        hi: 'This is a Hindi Bollywood song. Lyrics may include Devanagari or Romanized Hindi with Urdu-origin words. Transcribe accurately with proper Hindi spelling.',
+        en: 'This is an English song. Transcribe lyrics accurately including slang, contractions, and proper nouns.',
+        es: 'This is a Spanish song. Lyrics may include Latin American or Castilian Spanish expressions. Transcribe with proper accents and spelling.',
+        fr: 'This is a French song. Transcribe with proper French accents, liaisons, and spelling.',
+        de: 'This is a German song. Transcribe with proper German umlauts and compound words.',
+        ja: 'This is a Japanese song. Lyrics may include Hiragana, Katakana, and Kanji. Transcribe accurately.',
+        ko: 'This is a Korean K-pop song. Transcribe in Hangul with proper spacing.',
+        pt: 'This is a Portuguese song. Lyrics may be in Brazilian or European Portuguese.',
+        ar: 'This is an Arabic song. Transcribe in Arabic script accurately.',
+        zh: 'This is a Chinese song. Transcribe in Simplified Chinese characters.',
+        ru: 'This is a Russian song. Transcribe in Cyrillic script accurately.',
+        ta: 'This is a Tamil song from Indian cinema. Transcribe in Tamil script or Romanized Tamil.',
+        te: 'This is a Telugu song from Tollywood. Transcribe in Telugu script or Romanized Telugu.',
+        bn: 'This is a Bengali song. Transcribe in Bengali script or Romanized Bengali.',
+        mr: 'This is a Marathi song. Transcribe in Devanagari script or Romanized Marathi.',
+        gu: 'This is a Gujarati song. Transcribe in Gujarati script or Romanized Gujarati.',
+        pa: 'This is a Punjabi song. Lyrics may be in Gurmukhi or Romanized Punjabi with Bhangra style.',
+        ur: 'This is an Urdu song or ghazal. Transcribe in Nastaliq or Romanized Urdu with poetic vocabulary.',
+        it: 'This is an Italian song. Transcribe with proper Italian spelling and accents.',
+        tr: 'This is a Turkish song. Transcribe with proper Turkish characters and spelling.',
+        th: 'This is a Thai song. Transcribe in Thai script accurately.',
+    };
+
+    return prompts[language] || '';
+}
+
+/**
  * Transcribe audio using Groq's Whisper API.
  * Returns timestamped segments for lyric display.
  */
@@ -208,6 +243,13 @@ export async function transcribeWithGroq(
         console.info(`[Groq] Language hint: ${language}`);
     } else {
         console.info('[Groq] Language: auto-detect');
+    }
+
+    // Smart prompt based on language — helps with proper nouns, style, mixed-language
+    const prompt = getLanguagePrompt(language);
+    if (prompt) {
+        formData.append('prompt', prompt);
+        console.info(`[Groq] Prompt: "${prompt}"`);
     }
 
     const response = await fetch(GROQ_API_URL, {
