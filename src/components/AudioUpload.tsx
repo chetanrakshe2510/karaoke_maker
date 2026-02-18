@@ -34,6 +34,8 @@ export function AudioUpload() {
     const setSelectedLanguage = useAppStore((s) => s.setSelectedLanguage);
     const transcriptionQuality = useAppStore((s) => s.transcriptionQuality);
     const setTranscriptionQuality = useAppStore((s) => s.setTranscriptionQuality);
+    const isPostProcessingEnabled = useAppStore((s) => s.isPostProcessingEnabled);
+    const setPostProcessingEnabled = useAppStore((s) => s.setPostProcessingEnabled);
     const { separate } = useDemucs();
     const { runTranscription } = useWhisper();
 
@@ -109,8 +111,8 @@ export function AudioUpload() {
                     <button
                         onClick={() => setTranscriptionQuality('fast')}
                         className={`px-4 py-1.5 text-sm font-semibold rounded-lg transition-all duration-200 ${transcriptionQuality === 'fast'
-                                ? 'bg-neon-cyan/20 text-neon-cyan shadow-sm'
-                                : 'text-gray-400 hover:text-gray-200'
+                            ? 'bg-neon-cyan/20 text-neon-cyan shadow-sm'
+                            : 'text-gray-400 hover:text-gray-200'
                             }`}
                     >
                         ⚡ Fast
@@ -118,8 +120,8 @@ export function AudioUpload() {
                     <button
                         onClick={() => setTranscriptionQuality('accurate')}
                         className={`px-4 py-1.5 text-sm font-semibold rounded-lg transition-all duration-200 ${transcriptionQuality === 'accurate'
-                                ? 'bg-neon-cyan/20 text-neon-cyan shadow-sm'
-                                : 'text-gray-400 hover:text-gray-200'
+                            ? 'bg-neon-cyan/20 text-neon-cyan shadow-sm'
+                            : 'text-gray-400 hover:text-gray-200'
                             }`}
                     >
                         🎯 Accurate
@@ -127,6 +129,24 @@ export function AudioUpload() {
                 </div>
                 <span className="text-xs text-gray-500">
                     {transcriptionQuality === 'fast' ? '~2-3s' : '~5-8s'}
+                </span>
+            </div>
+
+            {/* AI Polish Toggle */}
+            <div className="flex items-center justify-center gap-3">
+                <span className="text-sm text-gray-400 font-medium">AI Polish</span>
+                <button
+                    onClick={() => setPostProcessingEnabled(!isPostProcessingEnabled)}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-neon-cyan/50 ${isPostProcessingEnabled ? 'bg-neon-cyan' : 'bg-surface-600'
+                        }`}
+                >
+                    <span
+                        className={`${isPostProcessingEnabled ? 'translate-x-6' : 'translate-x-1'
+                            } inline-block h-4 w-4 transform rounded-full bg-white transition-transform`}
+                    />
+                </button>
+                <span className="text-xs text-yellow-400 font-medium">
+                    {isPostProcessingEnabled ? '✨ Fixes spelling' : 'Off'}
                 </span>
             </div>
 

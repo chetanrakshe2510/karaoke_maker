@@ -9,7 +9,7 @@ function App() {
   const stage = useAppStore((s) => s.stage);
   const error = useAppStore((s) => s.error);
 
-  const isLoading = ['queue', 'separating', 'model-download', 'transcribing'].includes(stage);
+  const isLoading = ['queue', 'separating', 'model-download', 'transcribing', 'polishing'].includes(stage);
   const isReady = stage === 'ready';
 
   return (

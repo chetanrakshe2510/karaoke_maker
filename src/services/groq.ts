@@ -276,3 +276,108 @@ export async function transcribeWithGroq(
 
     throw new Error('No transcription returned from Groq');
 }
+
+// Chat completion for LLM post-processing
+const GROQ_CHAT_URL = '/api/groq/openai/v1/chat/completions';
+
+/**
+ * Use Llama 3 via Groq to polish lyrics.
+ * Fixes spelling, punctuation, and capitalization while preserving timestamps.
+ */
+export async function cleanLyricsWithGroq(
+    segments: LyricSegment[],
+    onProgress?: (message: string) => void
+): Promise<LyricSegment[]> {
+    if (!GROQ_API_KEY) throw new Error('Groq API key missing');
+
+    onProgress?.('✨ AI Polishing lyrics...');
+    console.info('[Groq] Starting Llama 3 lyric polish...');
+
+    // Prepare payload - we need to send words if they exist, or text if not
+    // To save tokens, we'll strip unnecessary fields
+    const payload = segments.map((s) => ({
+        text: s.text,
+        words: s.words?.map((w) => ({ w: w.word, s: w.start, e: w.end })), // Shorten keys to save tokens
+    }));
+
+    const systemPrompt = `
+You are a professional lyric editor. Your job is to fix spelling, punctuation, capitalization, and grammar in the provided song lyrics.
+CRITICAL INSTRUCTIONS:
+1. Return EXACTLY the same JSON structure as input.
+2. Fix the "text" field for readability.
+3. Fix the "w" (word) fields in the "words" array for synchronization.
+4. DO NOT change any "s" (start) or "e" (end) timestamps.
+5. DO NOT add or remove words. The number of word objects must remain exactly the same.
+6. Return ONLY valid JSON. No markdown, no explanations.
+`.trim();
+
+    try {
+        const response = await fetch(GROQ_CHAT_URL, {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${GROQ_API_KEY}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                model: 'llama3-70b-8192',
+                messages: [
+                    { role: 'system', content: systemPrompt },
+                    { role: 'user', content: JSON.stringify(payload) },
+                ],
+                temperature: 0.1, // Low temperature for deterministic formatting
+                response_format: { type: 'json_object' },
+            }),
+        });
+
+        if (!response.ok) {
+            throw new Error(`Llama 3 API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const content = data.choices[0]?.message?.content;
+
+        if (!content) throw new Error('Empty response from Llama 3');
+
+        // Parse cleaned data
+        const cleanedData = JSON.parse(content);
+
+        // Handle case where LLM wraps response in a key like "lyrics" or just returns array
+        const cleanedSegments = Array.isArray(cleanedData)
+            ? cleanedData
+            : cleanedData.segments || cleanedData.lyrics || Object.values(cleanedData)[0];
+
+        if (!Array.isArray(cleanedSegments)) {
+            console.warn('[Groq] LLM returned unexpected format, using original:', cleanedData);
+            return segments;
+        }
+
+        // Rehydrate the segments (map back 'w', 's', 'e' to 'word', 'start', 'end')
+        const processedSegments: LyricSegment[] = cleanedSegments.map((s: any, i: number) => {
+            const original = segments[i];
+
+            // Validate timestamps didn't break
+            if (!s.words || s.words.length !== original.words?.length) {
+                console.warn(`[Groq] Segment ${i} word count mismatch (orig: ${original.words?.length}, new: ${s.words?.length}). Using original.`);
+                return original;
+            }
+
+            return {
+                text: s.text || original.text,
+                start: original.start, // Trust original timestamps over LLM
+                end: original.end,
+                words: s.words.map((w: any) => ({
+                    word: w.w,
+                    start: w.s,
+                    end: w.e,
+                })),
+            };
+        });
+
+        console.info('[Groq] ✨ Lyrics polished successfully!');
+        return processedSegments;
+
+    } catch (err) {
+        console.error('[Groq] Polish failed:', err);
+        return segments; // Fallback to original
+    }
+}

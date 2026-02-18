@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { transcribe, isWebGPUAvailable } from '../services/whisper';
-import { transcribeWithGroq, isGroqConfigured } from '../services/groq';
+import { transcribeWithGroq, isGroqConfigured, cleanLyricsWithGroq } from '../services/groq';
 import { getMockTranscription } from '../services/huggingface';
 import { useAppStore } from '../store/useAppStore';
 
@@ -49,11 +49,24 @@ export function useWhisper() {
                 setModelDownloadProgress(null);
 
                 try {
-                    const segments = await transcribeWithGroq(vocalsBlob, (message) => {
+                    let segments = await transcribeWithGroq(vocalsBlob, (message) => {
                         console.info('Groq:', message);
                     }, language, quality);
 
                     console.info(`✅ Groq returned ${segments.length} segments`);
+
+                    // ─── Optional: LLM Post-Processing ───
+                    const isPostProcessingEnabled = useAppStore.getState().isPostProcessingEnabled;
+                    if (isPostProcessingEnabled) {
+                        try {
+                            setStage('polishing');
+                            console.info('✨ Starting LLM Polish...');
+                            segments = await cleanLyricsWithGroq(segments, (msg) => console.info(msg));
+                        } catch (polishErr) {
+                            console.warn('⚠️ Polish failed, keeping original lyrics:', polishErr);
+                        }
+                    }
+
                     setSegments(segments);
                     setStage('ready');
                     return;

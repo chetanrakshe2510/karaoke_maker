@@ -6,6 +6,7 @@ export type PipelineStage =
     | 'separating'
     | 'model-download'
     | 'transcribing'
+    | 'polishing'
     | 'ready';
 
 export interface WordTimestamp {
@@ -38,6 +39,7 @@ interface AppState {
     segments: LyricSegment[];
     selectedLanguage: string; // ISO 639-1 code, '' = auto-detect
     transcriptionQuality: 'fast' | 'accurate';
+    isPostProcessingEnabled: boolean;
 
     // Playback
     isPlaying: boolean;
@@ -56,6 +58,7 @@ interface AppState {
     setSegments: (segments: LyricSegment[]) => void;
     setSelectedLanguage: (lang: string) => void;
     setTranscriptionQuality: (quality: 'fast' | 'accurate') => void;
+    setPostProcessingEnabled: (enabled: boolean) => void;
     setIsPlaying: (playing: boolean) => void;
     setCurrentTime: (time: number) => void;
     setDuration: (duration: number) => void;
@@ -74,6 +77,7 @@ const initialState = {
     segments: [],
     selectedLanguage: '',
     transcriptionQuality: 'accurate' as const,
+    isPostProcessingEnabled: false,
     isPlaying: false,
     currentTime: 0,
     duration: 0,
@@ -93,6 +97,7 @@ export const useAppStore = create<AppState>((set) => ({
     setSegments: (segments) => set({ segments }),
     setSelectedLanguage: (selectedLanguage) => set({ selectedLanguage }),
     setTranscriptionQuality: (transcriptionQuality) => set({ transcriptionQuality }),
+    setPostProcessingEnabled: (isPostProcessingEnabled) => set({ isPostProcessingEnabled }),
     setIsPlaying: (isPlaying) => set({ isPlaying }),
     setCurrentTime: (currentTime) => set({ currentTime }),
     setDuration: (duration) => set({ duration }),
