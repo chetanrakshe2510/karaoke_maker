@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=Outfit:wght@400;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=Outfit:wght@400;600;700;800;900&family=Noto+Sans+Devanagari:wght@400;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -37,14 +37,14 @@
 
   .neon-glow-cyan {
     text-shadow: 0 0 10px rgba(34, 211, 238, 0.6),
-                 0 0 40px rgba(34, 211, 238, 0.3),
-                 0 0 80px rgba(34, 211, 238, 0.1);
+      0 0 40px rgba(34, 211, 238, 0.3),
+      0 0 80px rgba(34, 211, 238, 0.1);
   }
 
   .neon-glow-yellow {
     text-shadow: 0 0 10px rgba(250, 204, 21, 0.6),
-                 0 0 40px rgba(250, 204, 21, 0.3),
-                 0 0 80px rgba(250, 204, 21, 0.1);
+      0 0 40px rgba(250, 204, 21, 0.3),
+      0 0 80px rgba(250, 204, 21, 0.1);
   }
 
   .eq-bar {
@@ -52,10 +52,21 @@
     animation: eqBar 0.8s ease-in-out infinite alternate;
   }
 
-  .eq-bar:nth-child(2) { animation-delay: 0.1s; }
-  .eq-bar:nth-child(3) { animation-delay: 0.2s; }
-  .eq-bar:nth-child(4) { animation-delay: 0.3s; }
-  .eq-bar:nth-child(5) { animation-delay: 0.15s; }
+  .eq-bar:nth-child(2) {
+    animation-delay: 0.1s;
+  }
+
+  .eq-bar:nth-child(3) {
+    animation-delay: 0.2s;
+  }
+
+  .eq-bar:nth-child(4) {
+    animation-delay: 0.3s;
+  }
+
+  .eq-bar:nth-child(5) {
+    animation-delay: 0.15s;
+  }
 
   .lyric-line {
     @apply font-display font-black tracking-tight leading-relaxed;

@@ -1,7 +1,8 @@
 import { useState, useCallback } from 'react';
 import { transcribe, isWebGPUAvailable } from '../services/whisper';
-import { transcribeWithGroq, isGroqConfigured, cleanLyricsWithGroq } from '../services/groq';
+import { transcribeWithGroq, isGroqConfigured, cleanLyricsWithGroq, recallLyricsWithGroq } from '../services/groq';
 import { getMockTranscription } from '../services/huggingface';
+import { alignLyrics } from '../utils/alignment';
 import { useAppStore } from '../store/useAppStore';
 
 /**
@@ -23,6 +24,7 @@ export function useWhisper() {
         setModelDownloadProgress,
         setSegments,
         setError,
+        setPerformanceMetrics,
     } = useAppStore();
 
     const checkWebGPU = useCallback(async () => {
@@ -34,6 +36,21 @@ export function useWhisper() {
     const runTranscription = useCallback(async (vocalsBlob: Blob, duration?: number, language?: string, quality?: 'fast' | 'accurate') => {
         setIsTranscribing(true);
         setError(null);
+
+        const pipelineStart = Date.now();
+        // Reset metrics for new run
+        setPerformanceMetrics({
+            transcriptionTime: 0,
+            polishingTime: 0,
+            alignmentScore: 0,
+            totalTime: 0
+        });
+
+        const finalize = (segments: any[]) => {
+            setSegments(segments);
+            setStage('ready');
+            setPerformanceMetrics({ totalTime: Date.now() - pipelineStart });
+        };
 
         try {
             // ─── Path 1: Groq API (fastest) ───
@@ -48,27 +65,61 @@ export function useWhisper() {
                 setStage('transcribing');
                 setModelDownloadProgress(null);
 
+                setPerformanceMetrics({ transcriptionTime: Date.now() - pipelineStart }); // rough estimate without download
+
+
                 try {
                     let segments = await transcribeWithGroq(vocalsBlob, (message) => {
                         console.info('Groq:', message);
                     }, language, quality);
 
+                    // Record transcription time
+                    setPerformanceMetrics({ transcriptionTime: Date.now() - pipelineStart });
+
                     console.info(`✅ Groq returned ${segments.length} segments`);
 
-                    // ─── Optional: LLM Post-Processing ───
-                    const isPostProcessingEnabled = useAppStore.getState().isPostProcessingEnabled;
-                    if (isPostProcessingEnabled) {
-                        try {
+                    // ─── Post-Processing (Align or Polish) ───
+                    const postStart = Date.now();
+                    const { isPostProcessingEnabled, songMetadata, lyricSource, pastedLyrics } = useAppStore.getState();
+
+                    try {
+                        let cleanText: string | null = null;
+
+                        // 1. Determine if we have "Perfect Lyrics" source
+                        if (lyricSource === 'paste' && pastedLyrics.trim()) {
+                            cleanText = pastedLyrics;
+                        } else if (lyricSource === 'ai-recall' || (lyricSource === 'auto' && songMetadata.title)) {
+                            // Only try recall if we have metadata
+                            if (songMetadata.title) {
+                                setStage('polishing'); // Re-using polishing stage UI
+                                try {
+                                    cleanText = await recallLyricsWithGroq(songMetadata.artist, songMetadata.title, (msg) => console.info(msg));
+                                } catch (recallErr) {
+                                    console.warn('⚠️ Lyric recall failed:', recallErr);
+                                    // Fallback to normal flow
+                                }
+                            }
+                        }
+
+                        // 2. Align or Polish
+                        if (cleanText) {
+                            console.info('✨ Aligning with known lyrics...');
+                            setStage('polishing');
+                            segments = alignLyrics(segments, cleanText);
+                        } else if (isPostProcessingEnabled) {
+                            // Fallback to standard Polish (fix spelling/punctuation)
                             setStage('polishing');
                             console.info('✨ Starting LLM Polish...');
                             segments = await cleanLyricsWithGroq(segments, (msg) => console.info(msg));
-                        } catch (polishErr) {
-                            console.warn('⚠️ Polish failed, keeping original lyrics:', polishErr);
                         }
+
+                        setPerformanceMetrics({ polishingTime: Date.now() - postStart });
+
+                    } catch (postErr) {
+                        console.warn('⚠️ Post-processing failed, keeping original:', postErr);
                     }
 
-                    setSegments(segments);
-                    setStage('ready');
+                    finalize(segments);
                     return;
                 } catch (groqErr) {
                     const msg = groqErr instanceof Error ? groqErr.message : String(groqErr);
@@ -96,8 +147,7 @@ export function useWhisper() {
                 });
 
                 setStage('transcribing');
-                setSegments(segments);
-                setStage('ready');
+                finalize(segments);
                 return;
             }
 
@@ -119,11 +169,12 @@ export function useWhisper() {
             setStage('transcribing');
             setModelDownloadProgress(null);
 
+            setPerformanceMetrics({ transcriptionTime: 0 }); // Mock time
+
             await new Promise(r => setTimeout(r, 1000));
 
             const mockSegments = getMockTranscription(duration || 60);
-            setSegments(mockSegments);
-            setStage('ready');
+            finalize(mockSegments);
 
         } catch (err) {
             const errorMsg = err instanceof Error ? err.message : 'Unknown transcription error';
@@ -142,6 +193,9 @@ export function useWhisper() {
             setIsTranscribing(false);
         }
     }, [setStage, setModelDownloadProgress, setSegments, setError]);
+
+
+
 
     return {
         runTranscription,

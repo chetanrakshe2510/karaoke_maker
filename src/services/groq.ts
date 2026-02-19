@@ -308,7 +308,10 @@ CRITICAL INSTRUCTIONS:
 3. Fix the "w" (word) fields in the "words" array for synchronization.
 4. DO NOT change any "s" (start) or "e" (end) timestamps.
 5. DO NOT add or remove words. The number of word objects must remain exactly the same.
-6. Return ONLY valid JSON. No markdown, no explanations.
+6. RETAIN the original language and script. DO NOT TRANSLATE.
+7. If the lyrics are in a non-English script (e.g. Hindi, Japanese), KEEP them in that script.
+8. If the lyrics are transliterated (e.g. Hinglish), keep them transliterated.
+9. Return ONLY valid JSON. No markdown, no explanations.
 `.trim();
 
     try {
@@ -379,5 +382,65 @@ CRITICAL INSTRUCTIONS:
     } catch (err) {
         console.error('[Groq] Polish failed:', err);
         return segments; // Fallback to original
+    }
+}
+
+/**
+ * Use Llama 3 to recall lyrics from memory based on Artist and Title.
+ */
+export async function recallLyricsWithGroq(
+    artist: string,
+    title: string,
+    onProgress?: (message: string) => void
+): Promise<string> {
+    if (!GROQ_API_KEY) throw new Error('Groq API key missing');
+
+    onProgress?.(`🧠 AI Recalling lyrics for "${title}"...`);
+    console.info(`[Groq] Recalling lyrics for ${title} by ${artist}...`);
+
+    const systemPrompt = `
+You are a music expert. Output the EXACT official lyrics for the song "${title}" by "${artist}".
+CRITICAL INSTRUCTIONS:
+1. Output ONLY the lyrics. No intro, no outro, no "Here are the lyrics", no [Chorus] markers.
+2. Maintain standard line breaks.
+3. Provide the lyrics in their native script (e.g. Devanagari for Hindi) UNLESS the song is known for being Hinglish/Romanized.
+4. DO NOT TRANSLATE.
+5. If you don't know the song perfectly, return "UNKNOWN".
+`.trim();
+
+    try {
+        const response = await fetch(GROQ_CHAT_URL, {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${GROQ_API_KEY}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                model: 'llama3-70b-8192',
+                messages: [
+                    { role: 'system', content: systemPrompt },
+                    { role: 'user', content: `Lyrics for ${title} by ${artist}` },
+                ],
+                temperature: 0.1,
+            }),
+        });
+
+        if (!response.ok) {
+            throw new Error(`Llama 3 Recall API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const content = data.choices[0]?.message?.content?.trim();
+
+        if (!content || content.includes('UNKNOWN')) {
+            throw new Error('Song not found in LLM memory');
+        }
+
+        console.info('[Groq] Lyrics recalled successfully!');
+        return content;
+
+    } catch (err) {
+        console.error('[Groq] Recall failed:', err);
+        throw err;
     }
 }

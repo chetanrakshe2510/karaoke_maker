@@ -12,7 +12,9 @@ export function useDemucs() {
         setQueuePosition,
         setVocalsBlob,
         setInstrumentalBlob,
+
         setError,
+        setPerformanceMetrics,
     } = useAppStore();
 
     const separate = useCallback(async (audioBlob: Blob) => {
@@ -21,6 +23,7 @@ export function useDemucs() {
         setStage('queue');
 
         try {
+            const startTime = Date.now();
             const result = await separateAudio(audioBlob, {
                 onQueuePosition: (pos) => {
                     setQueuePosition(pos);
@@ -36,7 +39,10 @@ export function useDemucs() {
             setVocalsBlob(result.vocals);
             setInstrumentalBlob(result.instrumental);
 
+            setPerformanceMetrics({ separationTime: Date.now() - startTime });
+
             return result;
+
         } catch (err) {
             const message = err instanceof Error ? err.message : 'Source separation failed';
             setError(message);

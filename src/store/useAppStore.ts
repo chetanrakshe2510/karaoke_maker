@@ -22,6 +22,14 @@ export interface LyricSegment {
     words?: WordTimestamp[];
 }
 
+export interface PerformanceMetrics {
+    separationTime?: number;    // ms
+    transcriptionTime?: number; // ms
+    polishingTime?: number;     // ms
+    alignmentScore?: number;    // 0-100% matched
+    totalTime?: number;         // ms
+}
+
 interface AppState {
     // Pipeline
     stage: PipelineStage;
@@ -40,6 +48,10 @@ interface AppState {
     selectedLanguage: string; // ISO 639-1 code, '' = auto-detect
     transcriptionQuality: 'fast' | 'accurate';
     isPostProcessingEnabled: boolean;
+    songMetadata: { title: string; artist: string };
+    lyricSource: 'auto' | 'ai-recall' | 'paste';
+    pastedLyrics: string;
+    performanceMetrics: PerformanceMetrics;
 
     // Playback
     isPlaying: boolean;
@@ -59,6 +71,10 @@ interface AppState {
     setSelectedLanguage: (lang: string) => void;
     setTranscriptionQuality: (quality: 'fast' | 'accurate') => void;
     setPostProcessingEnabled: (enabled: boolean) => void;
+    setSongMetadata: (metadata: { title: string; artist: string }) => void;
+    setLyricSource: (source: 'auto' | 'ai-recall' | 'paste') => void;
+    setPastedLyrics: (lyrics: string) => void;
+    setPerformanceMetrics: (metrics: Partial<PerformanceMetrics>) => void;
     setIsPlaying: (playing: boolean) => void;
     setCurrentTime: (time: number) => void;
     setDuration: (duration: number) => void;
@@ -78,6 +94,10 @@ const initialState = {
     selectedLanguage: '',
     transcriptionQuality: 'accurate' as const,
     isPostProcessingEnabled: false,
+    songMetadata: { title: '', artist: '' },
+    lyricSource: 'auto' as const,
+    pastedLyrics: '',
+    performanceMetrics: {},
     isPlaying: false,
     currentTime: 0,
     duration: 0,
@@ -98,6 +118,12 @@ export const useAppStore = create<AppState>((set) => ({
     setSelectedLanguage: (selectedLanguage) => set({ selectedLanguage }),
     setTranscriptionQuality: (transcriptionQuality) => set({ transcriptionQuality }),
     setPostProcessingEnabled: (isPostProcessingEnabled) => set({ isPostProcessingEnabled }),
+    setSongMetadata: (songMetadata) => set({ songMetadata }),
+    setLyricSource: (lyricSource) => set({ lyricSource }),
+    setPastedLyrics: (pastedLyrics) => set({ pastedLyrics }),
+    setPerformanceMetrics: (metrics) => set((state) => ({
+        performanceMetrics: { ...state.performanceMetrics, ...metrics }
+    })),
     setIsPlaying: (isPlaying) => set({ isPlaying }),
     setCurrentTime: (currentTime) => set({ currentTime }),
     setDuration: (duration) => set({ duration }),

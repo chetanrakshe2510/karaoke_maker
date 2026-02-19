@@ -36,6 +36,12 @@ export function AudioUpload() {
     const setTranscriptionQuality = useAppStore((s) => s.setTranscriptionQuality);
     const isPostProcessingEnabled = useAppStore((s) => s.isPostProcessingEnabled);
     const setPostProcessingEnabled = useAppStore((s) => s.setPostProcessingEnabled);
+    const songMetadata = useAppStore((s) => s.songMetadata);
+    const setSongMetadata = useAppStore((s) => s.setSongMetadata);
+    const lyricSource = useAppStore((s) => s.lyricSource);
+    const setLyricSource = useAppStore((s) => s.setLyricSource);
+    const pastedLyrics = useAppStore((s) => s.pastedLyrics);
+    const setPastedLyrics = useAppStore((s) => s.setPastedLyrics);
     const { separate } = useDemucs();
     const { runTranscription } = useWhisper();
 
@@ -77,7 +83,67 @@ export function AudioUpload() {
     }, []);
 
     return (
-        <div className="w-full max-w-lg mx-auto px-4 space-y-4">
+        <div className="w-full max-w-lg mx-auto px-4 space-y-6">
+            {/* Song Metadata Section */}
+            <div className="bg-surface-800/50 rounded-2xl p-5 border border-white/5 space-y-4">
+                <div className="flex items-center gap-2 mb-2">
+                    <svg className="w-4 h-4 text-neon-cyan" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                    </svg>
+                    <h3 className="text-sm font-semibold text-gray-200">Song Details <span className="text-gray-500 font-normal">(Recommended)</span></h3>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                    <input
+                        type="text"
+                        placeholder="Song Title"
+                        value={songMetadata.title}
+                        onChange={(e) => setSongMetadata({ ...songMetadata, title: e.target.value })}
+                        className="bg-surface-700/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-neon-cyan/50 transition-colors"
+                    />
+                    <input
+                        type="text"
+                        placeholder="Artist"
+                        value={songMetadata.artist}
+                        onChange={(e) => setSongMetadata({ ...songMetadata, artist: e.target.value })}
+                        className="bg-surface-700/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-neon-cyan/50 transition-colors"
+                    />
+                </div>
+
+                {/* Lyric Source Selector */}
+                <div className="space-y-2">
+                    <label className="text-xs text-gray-400 font-medium ml-1">Lyric Strategy</label>
+                    <div className="grid grid-cols-3 gap-2">
+                        {[
+                            { id: 'auto', label: '👂 Transcribe', icon: 'Microphone' },
+                            { id: 'ai-recall', label: '🧠 AI Recall', icon: 'Sparkles' },
+                            { id: 'paste', label: '📋 Paste', icon: 'Clipboard' },
+                        ].map((opt) => (
+                            <button
+                                key={opt.id}
+                                onClick={() => setLyricSource(opt.id as any)}
+                                className={`flex flex-col items-center justify-center gap-1 py-2 rounded-xl border text-xs font-medium transition-all ${lyricSource === opt.id
+                                        ? 'bg-neon-cyan/10 border-neon-cyan/50 text-neon-cyan shadow-[0_0_10px_rgba(34,211,238,0.1)]'
+                                        : 'bg-surface-700/30 border-transparent text-gray-400 hover:bg-surface-700/50 hover:text-gray-300'
+                                    }`}
+                            >
+                                {opt.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Paste Area */}
+                {lyricSource === 'paste' && (
+                    <textarea
+                        value={pastedLyrics}
+                        onChange={(e) => setPastedLyrics(e.target.value)}
+                        placeholder="Paste lyrics here..."
+                        className="w-full h-32 bg-surface-900/50 border border-white/10 rounded-lg p-3 text-xs font-mono text-gray-300 placeholder-gray-600 focus:outline-none focus:border-neon-cyan/30 resize-none"
+                    />
+                )}
+            </div>
+
             {/* Language Selector */}
             <div className="flex items-center justify-center gap-3">
                 <label htmlFor="lang-select" className="text-sm text-gray-400 font-medium whitespace-nowrap">
